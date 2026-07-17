@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>🎰 Number Guess Wheel</title>
+
+<link rel="stylesheet"
+href="https://pyscript.net/releases/2025.5.1/core.css">
+
+<script type="module"
+src="https://pyscript.net/releases/2025.5.1/core.js"></script>
+
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+
+body{
+
+    margin:0;
+    min-height:100vh;
+
+    font-family:Arial, sans-serif;
+
+    color:white;
+
+    text-align:center;
+
+
+    background:
+    radial-gradient(circle at top,
+    #ffcc33,
+    transparent 25%),
+
+    linear-gradient(
+    135deg,
+    #3b0066,
+    #001f3f,
+    #00695c
+    );
+
+}
+
+
+
+h1{
+
+    font-size:40px;
+
+    text-shadow:
+    0 0 10px gold,
+    0 0 20px orange;
+
+}
+
+
+
+.gameBox{
+
+    width:90%;
+
+    max-width:900px;
+
+    margin:auto;
+
+    background:
+    rgba(0,0,0,0.35);
+
+    padding:25px;
+
+    border-radius:25px;
+
+    box-shadow:
+    0 0 30px rgba(255,215,0,0.5);
+
+}
+
+
+
+
+#wheelBox{
+
+    position:relative;
+
+    width:420px;
+
+    margin:30px auto;
+
+}
+
+
+
+canvas{
+
+    background:white;
+
+    border-radius:50%;
+
+    border:8px solid gold;
+
+    box-shadow:
+
+    0 0 25px gold,
+
+    0 0 50px orange;
+
+}
+
+
+
+#pointer{
+
+    position:absolute;
+
+    top:-45px;
+
+    left:195px;
+
+
+    width:0;
+
+    height:0;
+
+
+    border-left:18px solid transparent;
+
+    border-right:18px solid transparent;
+
+    border-top:55px solid red;
+
+
+    filter:
+    drop-shadow(
+    0 0 10px red
+    );
+
+    z-index:5;
+
+}
+
+
+
+
+
+select,input,button{
+
+
+    padding:14px;
+
+    margin:8px;
+
+
+    font-size:18px;
+
+
+    border-radius:10px;
+
+
+    border:none;
+
+}
+
+
+
+button{
+
+
+    background:
+
+    linear-gradient(
+    gold,
+    orange
+    );
+
+
+    cursor:pointer;
+
+
+    font-weight:bold;
+
+
+    box-shadow:
+
+    0 0 15px gold;
+
+
+}
+
+
+
+button:hover{
+
+
+    transform:scale(1.05);
+
+
+}
+
+
+
+button:disabled{
+
+
+    background:gray;
+
+    box-shadow:none;
+
+}
+
+
+
+#result{
+
+
+    white-space:pre-line;
+
+
+    font-size:24px;
+
+
+    min-height:120px;
+
+
+    text-shadow:
+    0 0 10px white;
+
+
+}
+
+
+
+.info{
+
+
+    font-size:22px;
+
+}
+
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+<div class="gameBox">
+
+
+<h1>
+🎰 Number Guess Wheel
+</h1>
+
+
+<div class="info">
+
+💰 Balance:
+$
+<span id="balance">
+10000
+</span>
+
+</div>
+
+
+<div class="info">
+
+⏳ New Game:
+<span id="timer">
+60
+</span>
+seconds
+
+</div>
+
+
+
+
+<div id="wheelBox">
+
+
+<div id="pointer"></div>
+
+
+<canvas id="wheel"
+width="420"
+height="420">
+
+</canvas>
+
+
+</div>
+
+
+
+
+<select id="guess">
+
+
+<option value="0">
+0 (5x)
+</option>
+
+
+<option value="1">
+1 (10x)
+</option>
+
+<option value="2">
+2 (10x)
+</option>
+
+<option value="3">
+3 (10x)
+</option>
+
+<option value="4">
+4 (10x)
+</option>
+
+<option value="5">
+5 (10x)
+</option>
+
+<option value="6">
+6 (10x)
+</option>
+
+<option value="7">
+7 (10x)
+</option>
+
+<option value="8">
+8 (10x)
+</option>
+
+<option value="9">
+9 (10x)
+</option>
+
+<option value="10">
+10 (20x)
+</option>
+
+
+</select>
+
+
+
+<br>
+
+
+<input
+id="bet"
+type="number"
+placeholder="Enter Bet Amount">
+
+
+
+<br>
+
+
+<button
+id="spinBtn"
+onclick="spin()">
+
+🎡 SPIN
+
+</button>
+
+
+<button
+onclick="newGame()">
+
+🔄 NEW GAME
+
+</button>
+
+
+
+<h2 id="result"></h2>
+
+
+</div>
+<script>
+
+
+const canvas =
+document.getElementById("wheel");
+
+
+const ctx =
+canvas.getContext("2d");
+
+
+
+const numbers =
+[
+0,1,2,3,4,
+5,6,7,8,9,10
+];
+
+
+let angle=0;
+
+let spinning=false;
+
+let lastTick=-1;
+
+
+const slice =
+(2*Math.PI)/numbers.length;
+
+
+
+
+// Sound generator
+
+const audioContext =
+new (window.AudioContext ||
+window.webkitAudioContext)();
+
+
+
+function playSound(type){
+
+
+let osc =
+audioContext.createOscillator();
+
+
+let gain =
+audioContext.createGain();
+
+
+
+osc.connect(gain);
+
+gain.connect(
+audioContext.destination
+);
+
+
+
+if(type=="tick"){
+
+osc.frequency.value=800;
+
+gain.gain.value=0.05;
+
+osc.start();
+
+osc.stop(
+audioContext.currentTime+0.04
+);
+
+}
+
+
+
+if(type=="win"){
+
+osc.frequency.value=700;
+
+gain.gain.value=0.2;
+
+osc.start();
+
+
+osc.frequency.setValueAtTime(
+1200,
+audioContext.currentTime+0.2
+);
+
+
+osc.stop(
+audioContext.currentTime+0.5
+);
+
+}
+
+
+
+if(type=="lose"){
+
+osc.frequency.value=200;
+
+gain.gain.value=0.2;
+
+osc.start();
+
+
+osc.frequency.setValueAtTime(
+100,
+audioContext.currentTime+0.2
+);
+
+
+osc.stop(
+audioContext.currentTime+0.5
+);
+
+}
+
+}
+
+
+
+
+
+function getMultiplier(num){
+
+if(num==0)
+
+return "5x";
+
+
+if(num==10)
+
+return "20x";
+
+
+return "10x";
+
+}
+
+
+
+
+
+function drawWheel(){
+
+
+let center=210;
+
+let radius=190;
+
+
+ctx.clearRect(
+0,
+0,
+420,
+420
+);
+
+
+
+for(let i=0;i<numbers.length;i++){
+
+
+let start =
+angle+i*slice;
+
+
+let end =
+start+slice;
+
+
+
+ctx.beginPath();
+
+
+ctx.moveTo(
+center,
+center
+);
+
+
+
+ctx.arc(
+center,
+center,
+radius,
+start,
+end
+);
+
+
+
+ctx.fillStyle =
+`hsl(${i*33},80%,65%)`;
+
+
+ctx.fill();
+
+
+ctx.stroke();
+
+
+
+ctx.save();
+
+
+ctx.translate(
+center,
+center
+);
+
+
+
+ctx.rotate(
+start+slice/2
+);
+
+
+
+ctx.fillStyle="black";
+
+
+ctx.font="14px Arial";
+
+
+
+ctx.fillText(
+
+numbers[i]+" "+getMultiplier(numbers[i]),
+
+100,
+
+5
+
+);
+
+
+
+ctx.restore();
+
+
+}
+
+
+}
+
+
+
+
+
+
+
+function spin(){
+
+
+if(spinning)
+
+return;
+
+
+
+let bet =
+Number(
+document.getElementById("bet").value
+);
+
+
+
+let balance =
+Number(
+document.getElementById("balance").innerText
+);
+
+
+
+if(balance<=0){
+
+alert("💸 Balance finished!");
+
+return;
+
+}
+
+
+
+if(!bet || bet<=0){
+
+alert("Enter valid bet");
+
+return;
+
+}
+
+
+
+if(bet>balance){
+
+alert("Not enough balance");
+
+return;
+
+}
+
+
+
+audioContext.resume();
+
+
+spinning=true;
+
+
+lastTick=-1;
+
+
+
+let target =
+angle+
+(8+Math.random()*5)
+*
+2*Math.PI;
+
+
+
+let start=angle;
+
+
+let startTime=null;
+
+
+
+function animate(time){
+
+
+if(!startTime)
+
+startTime=time;
+
+
+
+let progress =
+(time-startTime)/5000;
+
+
+
+if(progress<1){
+
+
+let ease =
+1-Math.pow(
+1-progress,
+4
+);
+
+
+
+angle =
+start+
+(target-start)
+*
+ease;
+
+
+
+drawWheel();
+
+
+
+
+let current =
+Math.floor(
+(angle%(2*Math.PI))/slice
+);
+
+
+
+if(current!=lastTick){
+
+playSound("tick");
+
+lastTick=current;
+
+}
+
+
+
+requestAnimationFrame(
+animate
+);
+
+
+
+}
+
+else{
+
+
+angle=target;
+
+
+drawWheel();
+
+
+spinning=false;
+
+
+
+let number =
+getWinner();
+
+
+
+window.checkResult(
+number,
+bet
+);
+
+
+
+}
+
+
+}
+
+
+
+requestAnimationFrame(
+animate
+);
+
+
+}
+
+
+
+
+
+function getWinner(){
+
+
+let pointer =
+-Math.PI/2;
+
+
+
+let pos =
+(pointer-angle)
+%
+(2*Math.PI);
+
+
+
+if(pos<0)
+
+pos+=2*Math.PI;
+
+
+
+let index =
+Math.floor(
+pos/slice
+);
+
+
+
+return numbers[index];
+
+}
+
+
+
+
+
+let timerValue=60;
+
+let timerInterval;
+
+
+
+function startTimer(){
+
+
+clearInterval(timerInterval);
+
+
+timerValue=60;
+
+
+document.getElementById(
+"timer"
+).innerText=timerValue;
+
+
+
+timerInterval=setInterval(()=>{
+
+
+timerValue--;
+
+
+document.getElementById(
+"timer"
+).innerText=timerValue;
+
+
+
+if(timerValue<=0){
+
+
+clearInterval(timerInterval);
+
+
+document.getElementById(
+"timer"
+).innerText="READY";
+
+
+}
+
+
+},1000);
+
+
+}
+
+
+
+
+
+function newGame(){
+
+
+if(timerValue>0){
+
+
+alert(
+"⏳ Wait "+timerValue+" seconds"
+);
+
+
+return;
+
+
+}
+
+
+
+document.getElementById(
+"balance"
+).innerText=10000;
+
+
+document.getElementById(
+"bet"
+).value="";
+
+
+document.getElementById(
+"result"
+).innerText=
+"🎮 New Game Started!";
+
+
+document.getElementById(
+"spinBtn"
+).disabled=false;
+
+
+startTimer();
+
+
+}
+
+
+
+
+
+drawWheel();
+
+startTimer();
+
+
+</script>
+
+
+
+
+
+
+<script type="py">
+
+
+from pyscript import document
+import js
+
+
+
+balance=10000
+
+
+
+def checkResult(number,bet):
+
+    global balance
+
+
+
+    guess=int(
+        document.querySelector("#guess").value
+    )
+
+
+
+    balance -= bet
+
+
+
+    if number==guess:
+
+
+        if number==0:
+
+            multi=5
+
+
+        elif number==10:
+
+            multi=20
+
+
+        else:
+
+            multi=10
+
+
+
+        prize=bet*multi
+
+
+        balance+=prize
+
+
+        js.playSound("win")
+
+
+
+        msg=f"""
+
+🎉 YOU WON!
+
+Wheel Number:
+{number}
+
+Multiplier:
+{multi}x
+
+Bet:
+${bet}
+
+Prize:
+${prize}
+
+Balance:
+${balance}
+
+"""
+
+
+
+    else:
+
+
+        js.playSound("lose")
+
+
+        msg=f"""
+
+😢 YOU LOST!
+
+Wheel Number:
+{number}
+
+Your Guess:
+{guess}
+
+Lost:
+${bet}
+
+Balance:
+${balance}
+
+"""
+
+
+
+    document.querySelector(
+        "#balance"
+    ).innerText=balance
+
+
+
+    document.querySelector(
+        "#result"
+    ).innerText=msg
+
+
+
+
+    if balance<=0:
+
+
+        document.querySelector(
+            "#spinBtn"
+        ).disabled=True
+
+
+        document.querySelector(
+            "#result"
+        ).innerText += """
+
+💀 GAME OVER
+
+Wait for new game timer.
+
+"""
+
+
+
+
+
+js.window.checkResult=checkResult
+
+
+
+</script>
+
+
+</body>
+
+</html>
